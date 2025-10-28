@@ -1,0 +1,263 @@
+@page
+@model NotesWebApp.Pages.Notes.IndexModel
+@{
+    ViewData["Title"] = "Notes";
+}
+<h1>Notes</h1>
+<p>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createNoteModal">New Note</button>
+</p>
+<table class="table table-striped" id="notesTable">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Priority</th>
+            <th>Created</th>
+            <th>Updated</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<div id="notesErrors" class="text-danger small"></div>
+
+<!-- Create Note Modal -->
+<div class="modal fade" id="createNoteModal" tabindex="-1" aria-labelledby="createNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createNoteModalLabel">New Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createNoteForm" novalidate>
+                    <div class="mb-3 position-relative">
+                        <label for="createTitle" class="form-label">Title</label>
+                        <input id="createTitle" name="Title" class="form-control" maxlength="200" />
+                        <div class="text-danger small" data-valmsg-for="Title"></div>
+                        <small class="text-muted d-block text-end"><span id="titleRemaining">200</span> remaining</small>
+                    </div>
+                    <div class="mb-3 position-relative">
+                        <label for="createContent" class="form-label">Content</label>
+                        <textarea id="createContent" name="Content" rows="4" class="form-control" maxlength="4000"></textarea>
+                        <div class="text-danger small" data-valmsg-for="Content"></div>
+                        <small class="text-muted d-block text-end"><span id="contentRemaining">4000</span> remaining</small>
+                    </div>
+                    <div class="mb-3 position-relative">
+                        <label for="createPriority" class="form-label">Priority</label>
+                        <select id="createPriority" name="Priority" class="form-select">
+                            <option value="1">Low</option>
+                            <option value="5">Medium</option>
+                            <option value="9">High</option>
+                        </select>
+                        <div class="text-danger small" data-valmsg-for="Priority"></div>
+                    </div>
+                    <div id="createErrors" class="text-danger small"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="createSubmitBtn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Note Modal -->
+<div class="modal fade" id="editNoteModal" tabindex="-1" aria-labelledby="editNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editNoteModalLabel">Edit Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editNoteForm" novalidate>
+                    <input type="hidden" id="editId" />
+                    <div class="mb-3 position-relative">
+                        <label for="editTitle" class="form-label">Title</label>
+                        <input id="editTitle" name="Title" class="form-control" maxlength="200" />
+                        <div class="text-danger small" data-valmsg-for="EditTitle"></div>
+                        <small class="text-muted d-block text-end"><span id="editTitleRemaining">200</span> remaining</small>
+                    </div>
+                    <div class="mb-3 position-relative">
+                        <label for="editContent" class="form-label">Content</label>
+                        <textarea id="editContent" name="Content" rows="4" class="form-control" maxlength="4000"></textarea>
+                        <div class="text-danger small" data-valmsg-for="EditContent"></div>
+                        <small class="text-muted d-block text-end"><span id="editContentRemaining">4000</span> remaining</small>
+                    </div>
+                    <div class="mb-3 position-relative">
+                        <label for="editPriority" class="form-label">Priority</label>
+                        <select id="editPriority" name="Priority" class="form-select">
+                            <option value="1">Low</option>
+                            <option value="5">Medium</option>
+                            <option value="9">High</option>
+                        </select>
+                        <div class="text-danger small" data-valmsg-for="EditPriority"></div>
+                    </div>
+                    <div id="editErrors" class="text-danger small"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="editSubmitBtn" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteNoteModal" tabindex="-1" aria-labelledby="deleteNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteNoteModalLabel">Delete Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteNoteTitle"></strong>?</p>
+                <input type="hidden" id="deleteId" />
+                <div id="deleteErrors" class="text-danger small"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                <button type="button" id="deleteConfirmBtn" class="btn btn-danger">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function(){
+        const tbody = document.querySelector('#notesTable tbody');
+        const errorDiv = document.getElementById('notesErrors');
+        async function load(){
+        errorDiv.textContent='';
+        const res = await fetch('/api/Notes');
+        if(!res.ok){ tbody.innerHTML = '<tr><td colspan="5">Error loading notes</td></tr>'; return; }
+        const data = await res.json();
+        tbody.innerHTML = '';
+        data.forEach(n => {
+        const priorityLabel = n.priority >=9 ? 'High' : n.priority >=5 ? 'Medium' : 'Low';
+        const badgeClass = n.priority >=9 ? 'bg-danger' : n.priority >=5 ? 'bg-warning text-dark' : 'bg-success';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+        <td>${n.title}</td>
+        <td><span class="badge ${badgeClass}">${priorityLabel} (${n.priority})</span></td>
+        <td>${new Date(n.createdUtc).toLocaleString()}</td>
+        <td>${n.updatedUtc ? new Date(n.updatedUtc).toLocaleString() : '-'}</td>
+        <td>
+        <button class="btn btn-sm btn-secondary edit-btn" data-id="${n.id}" data-title="${n.title}" data-content="${n.content}" data-priority="${n.priority}">Edit</button>
+        <button class="btn btn-sm btn-danger delete-btn" data-id="${n.id}" data-title="${n.title}">Delete</button>
+        </td>`;
+        tbody.appendChild(tr);
+        });
+        }
+        async function updateNote(id, title, content, priority){
+        const res = await fetch(`/api/Notes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Accept':'application/json' },
+        body: JSON.stringify({ id, title, content, priority })
+        });
+        if(res.ok){ await load(); }
+        else if(res.status ===400){ const problem = await res.json(); errorDiv.textContent = problem.title || 'Validation failed'; }
+        else if(res.status ===404){ errorDiv.textContent = 'Note not found.'; }
+        else { errorDiv.textContent = 'Update failed ('+res.status+')'; }
+        }
+        async function deleteNote(id){
+        const res = await fetch(`/api/Notes/${id}`, { method: 'DELETE' });
+        if(res.ok){ await load(); }
+        else if(res.status ===404){ errorDiv.textContent = 'Note not found.'; }
+        else { errorDiv.textContent = 'Delete failed ('+res.status+')'; }
+        }
+        tbody.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-btn');
+        const delBtn = e.target.closest('.delete-btn');
+        if(editBtn){
+        document.getElementById('editId').value = editBtn.dataset.id;
+        document.getElementById('editTitle').value = editBtn.dataset.title;
+        document.getElementById('editContent').value = editBtn.dataset.content;
+        document.getElementById('editPriority').value = editBtn.dataset.priority;
+        updateEditRemaining();
+        const modalEl = document.getElementById('editNoteModal');
+        (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
+        } else if(delBtn){
+        document.getElementById('deleteId').value = delBtn.dataset.id;
+        document.getElementById('deleteNoteTitle').textContent = delBtn.dataset.title;
+        document.getElementById('deleteErrors').textContent='';
+        const modalEl = document.getElementById('deleteNoteModal');
+        (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
+        }
+        });
+        const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
+        deleteConfirmBtn?.addEventListener('click', async () => {
+        const id = parseInt(document.getElementById('deleteId').value,10);
+        const modalEl = document.getElementById('deleteNoteModal');
+        await deleteNote(id);
+        (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).hide();
+        });
+        const maxTitle =200, maxContent =4000;
+        const titleInput = document.getElementById('createTitle');
+        const contentInput = document.getElementById('createContent');
+        const titleSpan = document.getElementById('titleRemaining');
+        const contentSpan = document.getElementById('contentRemaining');
+        function updateRemaining(){ if(titleInput) titleSpan.textContent = Math.max(0, maxTitle - titleInput.value.length); if(contentInput) contentSpan.textContent = Math.max(0, maxContent - contentInput.value.length); }
+        titleInput?.addEventListener('input', updateRemaining);
+        contentInput?.addEventListener('input', updateRemaining);
+        updateRemaining();
+        const createBtn = document.getElementById('createSubmitBtn');
+        const createForm = document.getElementById('createNoteForm');
+        const createErrors = document.getElementById('createErrors');
+        createBtn?.addEventListener('click', async () => {
+        createErrors.textContent='';
+        const payload = {
+        title: titleInput.value.trim(),
+        content: contentInput.value.trim(),
+        priority: parseInt(document.getElementById('createPriority').value,10)
+        };
+        try {
+        const res = await fetch('/api/Notes', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(payload)});
+        if(res.ok){
+        const modalEl = document.getElementById('createNoteModal');
+        (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).hide();
+        createForm.reset();
+        updateRemaining();
+        await load();
+        } else if(res.status===400){ const problem = await res.json(); if(problem && problem.errors){ createErrors.innerHTML = Object.values(problem.errors).flat().join('<br />'); } else createErrors.textContent = problem.title || 'Validation failed'; }
+        else createErrors.textContent = 'Error: '+res.status;
+        }catch(e){ createErrors.textContent='Network error'; }
+        });
+        const editTitleInput = document.getElementById('editTitle');
+        const editContentInput = document.getElementById('editContent');
+        const editTitleSpan = document.getElementById('editTitleRemaining');
+        const editContentSpan = document.getElementById('editContentRemaining');
+        function updateEditRemaining(){ if(editTitleInput) editTitleSpan.textContent = Math.max(0, maxTitle - editTitleInput.value.length); if(editContentInput) editContentSpan.textContent = Math.max(0, maxContent - editContentInput.value.length); }
+        editTitleInput?.addEventListener('input', updateEditRemaining);
+        editContentInput?.addEventListener('input', updateEditRemaining);
+        const editBtnSave = document.getElementById('editSubmitBtn');
+        const editErrors = document.getElementById('editErrors');
+        editBtnSave?.addEventListener('click', async () => {
+        editErrors.textContent='';
+        const id = parseInt(document.getElementById('editId').value,10);
+        const title = editTitleInput.value.trim();
+        const content = editContentInput.value.trim();
+        const priority = parseInt(document.getElementById('editPriority').value,10);
+        if(!title){ editErrors.textContent='Title required'; return; }
+        if(!content){ editErrors.textContent='Content required'; return; }
+        if(![1,5,9].includes(priority)){ editErrors.textContent='Priority must be1,5,9'; return; }
+        try {
+        const res = await fetch(`/api/Notes/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify({ id, title, content, priority }) });
+        if(res.ok){
+        const modalEl = document.getElementById('editNoteModal');
+        (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).hide();
+        await load();
+        } else if(res.status===400){ const problem = await res.json(); if(problem && problem.errors){ editErrors.innerHTML = Object.values(problem.errors).flat().join('<br />'); } else editErrors.textContent = problem.title || 'Validation failed'; }
+        else if(res.status===404){ editErrors.textContent='Not found'; }
+        else editErrors.textContent='Error: '+res.status;
+        }catch(e){ editErrors.textContent='Network error'; }
+        });
+
+        load();
+        })();
+    </script>
+}

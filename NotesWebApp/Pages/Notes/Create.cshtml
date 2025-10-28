@@ -1,0 +1,64 @@
+@page
+@model NotesWebApp.Pages.Notes.CreateModel
+@{
+    ViewData["Title"] = "Create Note";
+}
+<h1>Create Note</h1>
+<form id="pageCreateForm" method="post" novalidate>
+    <div class="mb-3">
+        <label class="form-label" for="Title">Title</label>
+        <input name="Title" id="Title" class="form-control" maxlength="200" />
+        <div class="text-danger small" data-valmsg-for="Title"></div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="Content">Content</label>
+        <textarea name="Content" id="Content" class="form-control" rows="4" maxlength="4000"></textarea>
+        <div class="text-danger small" data-valmsg-for="Content"></div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="Priority">Priority</label>
+        <select name="Priority" id="Priority" class="form-select">
+            <option value="1">Low</option>
+            <option value="5">Medium</option>
+            <option value="9">High</option>
+        </select>
+        <div class="text-danger small" data-valmsg-for="Priority"></div>
+    </div>
+    <div id="pageCreateErrors" class="text-danger small"></div>
+    <button type="button" id="pageCreateSubmit" class="btn btn-primary">Save</button>
+    <a href="/Notes" class="btn btn-secondary">Cancel</a>
+</form>
+@section Scripts {
+    <script>
+        (function(){
+        const btn = document.getElementById('pageCreateSubmit');
+        const form = document.getElementById('pageCreateForm');
+        const errorDiv = document.getElementById('pageCreateErrors');
+        async function submitViaApi(){
+        errorDiv.textContent='';
+        const payload = {
+        title: form.querySelector('input[name="Title"]').value.trim(),
+        content: form.querySelector('textarea[name="Content"]').value.trim(),
+        priority: parseInt(form.querySelector('select[name="Priority"]').value,10)
+        };
+        try {
+        const res = await fetch('/api/Notes', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body: JSON.stringify(payload)
+        });
+        if(res.ok){ window.location.href = '/Notes'; } else if(res.status===400){
+        const problem = await res.json();
+        if(problem && problem.errors){
+        errorDiv.innerHTML = Object.values(problem.errors).flat().join('<br />');
+        } else errorDiv.textContent = problem.title || 'Validation failed';
+        } else errorDiv.textContent = 'Error: '+res.status;
+        }catch(e){
+        errorDiv.textContent='Network error';
+        }
+        }
+        btn?.addEventListener('click', submitViaApi);
+        form?.addEventListener('submit', (e)=>{ e.preventDefault(); submitViaApi(); });
+        })();
+    </script>
+}
